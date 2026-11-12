@@ -18,10 +18,26 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Android SDK & NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'ndk;27.0.12077973'
+
+      - name: Set NDK Environment
+        run: |
+          NDK_DIR=$(ls -d $ANDROID_HOME/ndk/* | tail -n 1)
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$NDK_DIR" >> $GITHUB_ENV
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -29,13 +45,13 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Build Core & Android APK
+      - name: Build Android APK
         run: |
           flutter pub get
-          dart run setup.dart android --arch arm64 || flutter build apk --release --target-platform android-arm64
+          flutter build apk --release --target-platform android-arm64 --split-per-abi
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: FlClash-Android-arm64
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/*arm64*.apk
