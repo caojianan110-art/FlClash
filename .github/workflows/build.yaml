@@ -49,6 +49,19 @@ jobs:
         run: |
           flutter --version
           flutter pub get
+      - name: Replace Android Launcher Icons
+        run: |
+          sudo apt-get install -y webp
+          ICON_FILE=$(find assets -maxdepth 3 -iname "*icon*.png" -o -iname "*logo*.png" | head -n 1)
+          echo "Using icon: $ICON_FILE"
+          for dir in android/app/src/main/res/mipmap-*; do
+            if [ -f "$dir/ic_launcher.webp" ]; then
+              cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher.webp"
+            fi
+            if [ -f "$dir/ic_launcher_round.webp" ]; then
+              cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher_round.webp"
+            fi
+          done
 
       - name: Fetch CA certificates
         shell: bash
