@@ -9,7 +9,7 @@ import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:flutter/widgets.dart';
 
-const appName = '祥祥工作室';
+const appName = 'XiangXiang';
 const appHelperService = 'FlClashHelperService';
 const coreManifestName = 'manifest.json';
 const browserUa =
