@@ -3,80 +3,46 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
-env:
-  GO_VERSION: '1.27.1'
-
 jobs:
   build-android:
-    name: Build Android arm64
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-           - name: Fix NDK libclang
+      - name: Fix NDK libclang
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang llvm-dev libclang-dev
-          CLANG_SO=$(readlink -f $(find /usr/lib/llvm-* /usr/lib/x86_64-linux-gnu -name "libclang-*.so*" 2>/dev/null | head -n 1))
-          echo "Using real libclang: $CLANG_SO"
-          ls -lh "$CLANG_SO"
+          sudo apt-get update && sudo apt-get install -y clang llvm-dev libclang-dev
+          CLANG_SO=$(readlink -f $(find /usr/lib -name "libclang*.so*" | head -n 1))
           for ndk in /usr/local/lib/android/sdk/ndk/*; do
-            mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib"
-            mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64"
+            mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64"
             sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
             sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
           done
 
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version: '1.27.1'
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: master
           cache: true
 
-      - name: Get Flutter Dependency
+      - name: Build APK
         run: |
-          flutter --version
           flutter pub get
-
-      - name: Replace Android Launcher Icons
-        run: |
-          sudo apt-get install -y webp
-          ICON_FILE=$(find assets -maxdepth 3 -iname "*icon*.png" -o -iname "*logo*.png" | head -n 1)
-          for dir in android/app/src/main/res/mipmap-*; do
-            [ -f "$dir/ic_launcher.webp" ] && cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher.webp" || true
-            [ -f "$dir/ic_launcher_round.webp" ] && cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher_round.webp" || true
-          done
-
-      - name: Fetch CA certificates
-        shell: bash
-        run: |
-          bundle=core/Clash.Meta/component/ca/ca-certificates.crt
-          curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
-
-      - name: Build Android arm64 APK
-        run: |
+          curl -fSSL --retry 3 -o core/Clash.Meta/component/ca/ca-certificates.crt "https://curl.se"
           [ -f env.json ] || echo '{}' > env.json
           flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env.json
 
-      - name: Upload Android APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: XiangXiang-Android-APK
           path: build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: error
-          overwrite: true
