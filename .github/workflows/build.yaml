@@ -1,4 +1,4 @@
-name: Build Windows Setup
+name: Build Android APK
 
 on:
   workflow_dispatch:
@@ -7,22 +7,25 @@ env:
   GO_VERSION: '1.27.1'
 
 jobs:
-  build-windows:
-    name: Build Windows amd64
-    runs-on: windows-2022
+  build-android:
+    name: Build Android arm64
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Enable git long paths (Windows)
-        run: git config --global core.longpaths true
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -41,12 +44,12 @@ jobs:
           bundle=core/Clash.Meta/component/ca/ca-certificates.crt
           curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
 
-      - name: Setup and Build Windows Installer
-        run: dart setup.dart windows -v
+      - name: Setup and Build Android APK
+        run: dart setup.dart android
 
-      - name: Upload Windows Installer
+      - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: XiangXiang-Windows-Setup
+          name: XiangYun-Android-APK
           path: ./dist/*
           overwrite: true
