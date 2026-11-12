@@ -16,7 +16,7 @@ jobs:
         with:
           submodules: recursive
 
-           - name: Fix NDK libclang
+      - name: Fix NDK libclang
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libclang-dev
@@ -30,7 +30,6 @@ jobs:
             sudo cp -f "$REAL_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
             sudo cp -f "$REAL_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
           done
-
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -53,6 +52,7 @@ jobs:
         run: |
           flutter --version
           flutter pub get
+
       - name: Replace Android Launcher Icons
         run: |
           sudo apt-get install -y webp
@@ -76,13 +76,12 @@ jobs:
       - name: Build Core & Android arm64 APK
         run: |
           [ -f env.json ] || echo '{}' > env.json
-          dart setup.dart core --platform android --arch arm64 || true
           flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env.json
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: XiangYun-Android-APK
+          name: XiangXiang-Android-APK
           path: build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
           overwrite: true
