@@ -3,19 +3,31 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
+env:
+  GO_VERSION: '1.27.1'
+
 jobs:
   build-android:
+    name: Build Android arm64
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install System Dependencies
+      - name: Fix NDK libclang & Install Build Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libclang-dev build-essential pkg-config
+          LIBCLANG_PATH=$(find /usr/lib -name "libclang-*.so*" | head -n 1)
+          echo "Found system libclang at: $LIBCLANG_PATH"
+          for ndk in /usr/local/lib/android/sdk/ndk/*; do
+            if [ -d "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib" ]; then
+              sudo ln -sf "$LIBCLANG_PATH" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
+              echo "Linked libclang.so into $ndk"
+            fi
+          done
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -23,45 +35,39 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK & NDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'ndk;27.0.12077973'
-
-      - name: Set NDK & Cross-Compile Environment
-        run: |
-          NDK_DIR=$(ls -d $ANDROID_HOME/ndk/* | tail -n 1)
-          TOOLCHAIN="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64"
-          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
-          echo "ANDROID_NDK=$NDK_DIR" >> $GITHUB_ENV
-          echo "CC_aarch64_linux_android=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
-          echo "CXX_aarch64_linux_android=$TOOLCHAIN/bin/aarch64-linux-android21-clang++" >> $GITHUB_ENV
-          echo "AR_aarch64_linux_android=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_ENV
-          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android21-clang" >> $GITHUB_ENV
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: master
           cache: true
 
-      - name: Build Android APK
+      - name: Get Flutter Dependency
         run: |
+          flutter --version
           flutter pub get
-          flutter build apk --release --target-platform android-arm64 --split-per-abi
+
+      - name: Fetch CA certificates
+        shell: bash
+        run: |
+          bundle=core/Clash.Meta/component/ca/ca-certificates.crt
+          curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
+
+      - name: Setup and Build Android APK
+        run: dart setup.dart android
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: FlClash-Android-arm64
-          path: build/app/outputs/flutter-apk/*arm64*.apk
+          name: XiangYun-Android-APK
+          path: ./dist/*
+          overwrite: true
