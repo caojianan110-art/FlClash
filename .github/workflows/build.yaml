@@ -56,16 +56,16 @@ jobs:
           bundle=core/Clash.Meta/component/ca/ca-certificates.crt
           curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
 
-      - name: Setup and Build Android APK
+      - name: Build Core & Android arm64 APK
         run: |
-          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android || true
-          dart setup.dart android --arch arm64 || dart setup.dart android
+          [ -f env.json ] || echo '{}' > env.json
+          dart setup.dart core --platform android --arch arm64 || true
+          flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env.json
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: XiangYun-Android-APK
-          path: |
-            ./dist/*.apk
-            ./build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
           overwrite: true
