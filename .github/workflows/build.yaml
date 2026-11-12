@@ -39,11 +39,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -61,9 +56,10 @@ jobs:
           bundle=core/Clash.Meta/component/ca/ca-certificates.crt
           curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
 
-      - name: Build Android arm64 APK
+      - name: Setup and Build Android APK
         run: |
-          dart setup.dart android --arch arm64 || flutter build apk --release --target-platform android-arm64 --split-per-abi
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android || true
+          dart setup.dart android --arch arm64 || dart setup.dart android
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
@@ -71,6 +67,5 @@ jobs:
           name: XiangYun-Android-APK
           path: |
             ./dist/*.apk
-            ./build/app/outputs/flutter-apk/*arm64*.apk
-          if-no-files-found: error
+            ./build/app/outputs/flutter-apk/*.apk
           overwrite: true
