@@ -16,20 +16,21 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Fix NDK libclang
+          - name: Fix NDK libclang
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libclang-dev
-          REAL_SO=$(find /usr/lib/llvm-* -type f -name "libclang-*.so*" | head -n 1)
-          echo "Verified real libclang binary: $REAL_SO"
-          ls -lh "$REAL_SO"
-          echo "LIBCLANG_PATH=$(dirname "$REAL_SO")" >> $GITHUB_ENV
+          REAL_SO=$(dpkg -L $(dpkg -l | grep -E "libclang-[0-9]+-dev" | awk '{print $2}' | head -n 1) | grep "libclang\.so$" | head -n 1)
+          REAL_FILE=$(readlink -f "$REAL_SO")
+          echo "Verified real libclang binary: $REAL_FILE"
+          ls -lh "$REAL_FILE"
           for ndk in /usr/local/lib/android/sdk/ndk/*; do
             mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib"
             mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64"
-            sudo cp -f "$REAL_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
-            sudo cp -f "$REAL_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
+            sudo cp -f "$REAL_FILE" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
+            sudo cp -f "$REAL_FILE" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
           done
+
 
       - name: Setup Java
         uses: actions/setup-java@v4
