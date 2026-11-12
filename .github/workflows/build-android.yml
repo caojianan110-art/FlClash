@@ -16,17 +16,19 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Fix NDK libclang & Install Build Tools
+      - name: Install Build Tools & Export LIBCLANG_PATH
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libclang-dev build-essential pkg-config
-          REAL_LIBCLANG=$(readlink -f $(find /usr/lib -name "libclang-*.so*" | head -n 1))
-          echo "Real libclang file: $REAL_LIBCLANG"
+          CLANG_LIB_DIR=$(dirname $(find /usr/lib/llvm-* -name "libclang.so*" | head -n 1))
+          echo "LIBCLANG_PATH=$CLANG_LIB_DIR" >> $GITHUB_ENV
+          echo "Found LIBCLANG_PATH: $CLANG_LIB_DIR"
+          ls -lh "$CLANG_LIB_DIR"/libclang*
           for ndk in /usr/local/lib/android/sdk/ndk/*; do
             TARGET_LIB="$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib"
             if [ -d "$TARGET_LIB" ]; then
-              sudo cp -f "$REAL_LIBCLANG" "$TARGET_LIB/libclang.so"
-              ls -lh "$TARGET_LIB/libclang.so"
+              sudo cp -f "$CLANG_LIB_DIR"/libclang.so* "$TARGET_LIB/"
+              sudo ln -sf "$TARGET_LIB"/libclang.so* "$TARGET_LIB/libclang.so"
             fi
           done
 
