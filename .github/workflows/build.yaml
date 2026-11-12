@@ -16,6 +16,20 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fix NDK libclang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm-dev libclang-dev
+          CLANG_SO=$(readlink -f $(find /usr/lib -name "libclang*.so*" | head -n 1))
+          echo "Using libclang: $CLANG_SO"
+          for ndk in /usr/local/lib/android/sdk/ndk/*; do
+            mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib"
+            mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64"
+            sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
+            sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
+            ls -lh "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
+          done
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -26,6 +40,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
