@@ -13,12 +13,13 @@ jobs:
 
       - name: Fix NDK libclang
         run: |
-          sudo apt-get update && sudo apt-get install -y clang llvm-dev libclang-dev
-          CLANG_SO=$(readlink -f $(find /usr/lib -name "libclang*.so*" | head -n 1))
+          sudo apt-get update && sudo apt-get install -y libclang-18-dev
+          REAL_CLANG="/usr/lib/llvm-18/lib/libclang-18.so.1"
+          ls -lh "$REAL_CLANG"
           for ndk in /usr/local/lib/android/sdk/ndk/*; do
             mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64"
-            sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
-            sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
+            sudo cp -f "$REAL_CLANG" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
+            sudo cp -f "$REAL_CLANG" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
           done
 
       - uses: actions/setup-java@v4
