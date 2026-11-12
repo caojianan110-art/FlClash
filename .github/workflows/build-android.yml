@@ -20,12 +20,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libclang-dev build-essential pkg-config
-          LIBCLANG_PATH=$(find /usr/lib -name "libclang-*.so*" | head -n 1)
-          echo "Found system libclang at: $LIBCLANG_PATH"
+          REAL_LIBCLANG=$(readlink -f $(find /usr/lib -name "libclang-*.so*" | head -n 1))
+          echo "Real libclang file: $REAL_LIBCLANG"
           for ndk in /usr/local/lib/android/sdk/ndk/*; do
-            if [ -d "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib" ]; then
-              sudo ln -sf "$LIBCLANG_PATH" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
-              echo "Linked libclang.so into $ndk"
+            TARGET_LIB="$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib"
+            if [ -d "$TARGET_LIB" ]; then
+              sudo cp -f "$REAL_LIBCLANG" "$TARGET_LIB/libclang.so"
+              ls -lh "$TARGET_LIB/libclang.so"
             fi
           done
 
