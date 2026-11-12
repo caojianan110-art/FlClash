@@ -37,13 +37,9 @@ jobs:
 
       - name: Fetch CA certificates
         shell: bash
-        env:
-          CA_BUNDLE: cacert-2026-09-25.pem
-          CA_BUNDLE_SHA256: a41b5d356aea97a529fe27e07f7316d2f9d46d75927476cf9cf1b90637d00505
         run: |
           bundle=core/Clash.Meta/component/ca/ca-certificates.crt
           curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
-          echo "$CA_BUNDLE_SHA256  $bundle" | sha256sum -c -
 
       - name: Setup and Build Windows Installer
         run: dart setup.dart windows -v
