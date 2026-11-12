@@ -16,21 +16,17 @@ jobs:
         with:
           submodules: recursive
 
-          - name: Fix NDK libclang
+      - name: Fix NDK libclang
         run: |
           sudo apt-get update
           sudo apt-get install -y clang llvm-dev libclang-dev
-          REAL_SO=$(dpkg -L $(dpkg -l | grep -E "libclang-[0-9]+-dev" | awk '{print $2}' | head -n 1) | grep "libclang\.so$" | head -n 1)
-          REAL_FILE=$(readlink -f "$REAL_SO")
-          echo "Verified real libclang binary: $REAL_FILE"
-          ls -lh "$REAL_FILE"
+          CLANG_SO=$(readlink -f $(find /usr/lib -name "libclang*.so*" | head -n 1))
           for ndk in /usr/local/lib/android/sdk/ndk/*; do
             mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib"
             mkdir -p "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64"
-            sudo cp -f "$REAL_FILE" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
-            sudo cp -f "$REAL_FILE" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
+            sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib/libclang.so"
+            sudo cp -f "$CLANG_SO" "$ndk/toolchains/llvm/prebuilt/linux-x86_64/lib64/libclang.so"
           done
-
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -58,14 +54,9 @@ jobs:
         run: |
           sudo apt-get install -y webp
           ICON_FILE=$(find assets -maxdepth 3 -iname "*icon*.png" -o -iname "*logo*.png" | head -n 1)
-          echo "Using icon: $ICON_FILE"
           for dir in android/app/src/main/res/mipmap-*; do
-            if [ -f "$dir/ic_launcher.webp" ]; then
-              cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher.webp"
-            fi
-            if [ -f "$dir/ic_launcher_round.webp" ]; then
-              cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher_round.webp"
-            fi
+            [ -f "$dir/ic_launcher.webp" ] && cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher.webp" || true
+            [ -f "$dir/ic_launcher_round.webp" ] && cwebp -q 90 "$ICON_FILE" -o "$dir/ic_launcher_round.webp" || true
           done
 
       - name: Fetch CA certificates
@@ -74,7 +65,7 @@ jobs:
           bundle=core/Clash.Meta/component/ca/ca-certificates.crt
           curl -fSSL --retry 3 -o "$bundle" "https://curl.se"
 
-      - name: Build Core & Android arm64 APK
+      - name: Build Android arm64 APK
         run: |
           [ -f env.json ] || echo '{}' > env.json
           flutter build apk --release --target-platform android-arm64 --dart-define-from-file=env.json
